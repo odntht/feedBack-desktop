@@ -967,6 +967,33 @@ export function initAudioBridge(): void {
         }
     });
 
+    // Direct path: the renderer's bus tap worklet posts ~10 ms batches on a
+    // MessagePort whose other end arrives here (forwarded by the preload), so
+    // song audio no longer waits on the renderer main thread. The port is
+    // acknowledged with { ready: true }; the worklet keeps using the IPC push
+    // above until then, and goes back to it on { ready: false }.
+    ipcMain.on('audio:rendererBusPort', (event, meta: unknown) => {
+        const port = event.ports[0];
+        if (!port) return;
+        const raw = (meta as { sourceRate?: unknown } | null)?.sourceRate;
+        const rate = typeof raw === 'number' && Number.isFinite(raw) ? raw : 0;
+        port.on('message', ({ data }) => {
+            const chunk = data instanceof Float32Array ? data
+                : data instanceof ArrayBuffer ? new Float32Array(data)
+                : null;
+            if (!chunk || chunk.length < 2) {
+                port.postMessage({ ready: false });
+                port.close();
+                return;
+            }
+            if (audio && typeof audio.pushRendererAudio === 'function') {
+                audio.pushRendererAudio(chunk, rate);
+            }
+        });
+        port.start();
+        port.postMessage({ ready: true });
+    });
+
     ipcMain.handle('audio:getRendererBusMetrics', () => {
         if (!audio || typeof audio.getRendererBusMetrics !== 'function') return null;
         return audio.getRendererBusMetrics();
