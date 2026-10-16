@@ -979,7 +979,10 @@ export function initAudioBridge(): void {
         const rate = typeof raw === 'number' && Number.isFinite(raw) ? raw : 0;
         port.on('message', ({ data }) => {
             const chunk = data instanceof Float32Array ? data
-                : data instanceof ArrayBuffer ? new Float32Array(data)
+                // A byteLength that isn't a whole number of floats would make
+                // the constructor throw out of this listener; treat it as invalid.
+                : data instanceof ArrayBuffer && data.byteLength % Float32Array.BYTES_PER_ELEMENT === 0
+                    ? new Float32Array(data)
                 : null;
             if (!chunk || chunk.length < 2) {
                 port.postMessage({ ready: false });
