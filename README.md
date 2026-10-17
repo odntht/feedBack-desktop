@@ -15,7 +15,8 @@ This README is for developers.
 - `ffmpeg` and `vgmstream-cli` on your `PATH`
 - On Linux, the ALSA, JACK, freetype2 and X11 dev headers
 
-`bash scripts/setup-dev.sh` checks all of these and prints what is missing.
+`bash scripts/setup-dev.sh` checks that the commands are on your `PATH`, plus the Linux dev headers and the macOS Command Line Tools, and prints what is missing.
+It does not check the Node.js or Python versions, or the Windows C++ toolchain, so confirm those yourself.
 It also runs the submodule and `npm install` steps below.
 
 ## Dev setup
